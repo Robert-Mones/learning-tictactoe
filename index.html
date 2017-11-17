@@ -1,14 +1,159 @@
 <!DOCTYPE html>
+<link rel="stylesheet" type="text/css" href="theme.css">
+
 <html>
 <body>
 
-<h2>My First JavaScript</h2>
+<button type="button" id="btn00" onclick="handleClick(0,0)">-</button>
+<button type="button" id="btn01" onclick="handleClick(0,1)">-</button>
+<button type="button" id="btn02" onclick="handleClick(0,2)">-</button>
+<br/>
+<button type="button" id="btn10" onclick="handleClick(1,0)">-</button>
+<button type="button" id="btn11" onclick="handleClick(1,1)">-</button>
+<button type="button" id="btn12" onclick="handleClick(1,2)">-</button>
+<br/>
+<button type="button" id="btn20" onclick="handleClick(2,0)">-</button>
+<button type="button" id="btn21" onclick="handleClick(2,1)">-</button>
+<button type="button" id="btn22" onclick="handleClick(2,2)">-</button>
 
-<button type="button"
-onclick="document.getElementById('demo').innerHTML = Date()">
-Click me to display Date and Time.</button>
+<p id="message"></p>
 
-<p id="demo"></p>
+<script>
+	var humansTurn = true;
+	var gameFinished = false;
+	var txtMessage = document.getElementById("message");
+	
+	function btn(x,y) {
+		return document.getElementById("btn"+x+y);
+	}
+	
+	function reset() {
+        for(x = 0; x < 3; x++) {
+            for (y = 0; y < 3; y++) {
+                btn(x,y).innerHTML = "-";
+            }
+        }
+
+        humansTurn = true;
+        gameFinished = false;
+
+        processMessages();
+    }
+    function testWin(symbol) {
+    	var cellData = [ [false,false,false], [false,false,false], [false,false,false] ];
+    
+        for (x = 0; x < 3; x++) {
+            for (y = 0; y < 3; y++) {
+                if (btn(x,y).innerHTML == symbol) {
+                    cellData[x][y] = true;
+                } else {
+                    cellData[x][y] = false;
+                }
+            }
+        }
+
+        if ((cellData[0][0] && cellData[1][0] && cellData[2][0]) ||
+                (cellData[0][1] && cellData[1][1] && cellData[2][1]) ||
+                (cellData[0][2] && cellData[1][2] && cellData[2][2]) ||
+
+                (cellData[0][0] && cellData[0][1] && cellData[0][2]) ||
+                (cellData[1][0] && cellData[1][1] && cellData[1][2]) ||
+                (cellData[2][0] && cellData[2][1] && cellData[2][2]) ||
+
+                (cellData[0][0] && cellData[1][1] && cellData[2][2]) ||
+                (cellData[2][0] && cellData[1][1] && cellData[0][2])) {
+            return true;
+        } else {
+        	return false;
+        }
+    }
+    function processMessages() {
+    	console.log("processMessages");
+    	var spacesLeft = false;
+    	for (x = 0; x < 3; x++) {
+            for (y = 0; y < 3; y++) {
+            	if(btn(x,y).innerHTML == "-") { 
+            		spacesLeft = true;
+            	}
+            }
+        }
+    
+        if(testWin("X")) {
+            txtMessage.innerHTML = "Player 1 wins!";
+            gameFinished = true;
+        } else if(testWin("O")) {
+            txtMessage.innerHTML = "Player 2 wins!";
+            gameFinished = true;
+        } else if(!spacesLeft) {
+        	txtMessage.innerHTML = "Tie!";
+        	gameFinished = true;
+        } else {
+            if(humansTurn) txtMessage.innerHTML = "Player 1's turn!";
+            else txtMessage.innerHTML = "Player 2's turn!";
+        }
+    }
+    function testFutureWins() {
+    	console.log("Testing next-turn wins");
+    	var openSpaces = [ ];
+		var atLeastOneOpen = false;
+		for(x = 0; x < 3; x++) {
+			for(y = 0; y < 3; y++) {
+				if(btn(x,y).innerHTML == "-") {
+					openSpaces.push([x,y]);
+					//console.log("Added ("+x+","+y+")");
+					atLeastOneOpen = true;
+				}
+			}
+		}
+		if(atLeastOneOpen) {
+			for(i = 0; i < openSpaces.length; i++) {
+				btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "X";
+				
+				if(testWin("X")) {
+					console.log("X can win in spot ("+openSpaces[i][0]+","+openSpaces[i][1]+")");
+					btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "O";
+					return true;
+				}
+				
+				btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "-";
+			}
+		}
+		return false;
+    }
+	function handleClick(x,y) {
+		if(gameFinished == true || btn(x,y).innerHTML != "-") { return; }
+		
+		if(humansTurn) {
+			btn(x,y).innerHTML = "X";
+			processMessages();
+			humansTurn = false;
+			if(testWin("X")) { gameFinished = true; return; }
+			
+			if(!gameFinished) {
+				runAI(x,y);
+			}
+		}
+	}
+	function runAI(x,y) {
+		if(testFutureWins()) { humansTurn = true; return; }
+	
+		var openSpaces = [ ];
+		var atLeastOneOpen = false;
+		for(x = 0; x < 3; x++) {
+			for(y = 0; y < 3; y++) {
+				if(btn(x,y).innerHTML == "-") {
+					openSpaces.push([x,y]);
+					atLeastOneOpen = true;
+				}
+			}
+		}
+		if(atLeastOneOpen) {
+			var x = Math.floor(Math.random()*openSpaces.length);
+			btn(openSpaces[x][0],openSpaces[x][1]).innerHTML = "O";
+			humansTurn = true;
+		}
+	}
+</script>
 
 </body>
 </html>
