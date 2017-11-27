@@ -4,6 +4,7 @@
 <html>
 <body>
 
+<div id="grid">
 <button type="button" id="btn00" onclick="handleClick(0,0)">-</button>
 <button type="button" id="btn01" onclick="handleClick(0,1)">-</button>
 <button type="button" id="btn02" onclick="handleClick(0,2)">-</button>
@@ -15,12 +16,18 @@
 <button type="button" id="btn20" onclick="handleClick(2,0)">-</button>
 <button type="button" id="btn21" onclick="handleClick(2,1)">-</button>
 <button type="button" id="btn22" onclick="handleClick(2,2)">-</button>
+</div>
 
-<p id="message"></p>
+<p id="message"><br/></p>
+<button type="button" onclick="CPUvCPU(true)">Run the CPU against itself</button>
+<button type="button" id="runIndefBtn" onclick="runIndef()">Run Indefinitely</button>
 
 <script>
 	var humansTurn = true;
 	var gameFinished = false;
+	var runningIndef = false;
+	var interval;
+	var indefRunLog = [];
 	var txtMessage = document.getElementById("message");
 	
 	function btn(x,y) {
@@ -67,8 +74,8 @@
         	return false;
         }
     }
-    function processMessages() {
-    	console.log("processMessages");
+    function processMessages(showText) {
+    	//console.log("processMessages");
     	var spacesLeft = false;
     	for (x = 0; x < 3; x++) {
             for (y = 0; y < 3; y++) {
@@ -79,23 +86,60 @@
         }
     
         if(testWin("X")) {
-            txtMessage.innerHTML = "Player 1 wins!";
+            if(showText) { txtMessage.innerHTML = "Player 1 wins!"; }
             gameFinished = true;
         } else if(testWin("O")) {
-            txtMessage.innerHTML = "Player 2 wins!";
+            if(showText) { txtMessage.innerHTML = "Player 2 wins!"; }
             gameFinished = true;
         } else if(!spacesLeft) {
-        	txtMessage.innerHTML = "Tie!";
+        	if(showText) { txtMessage.innerHTML = "Tie!"; }
         	gameFinished = true;
         } else {
-            if(humansTurn) txtMessage.innerHTML = "Player 1's turn!";
-            else txtMessage.innerHTML = "Player 2's turn!";
+        	if(showText) { 
+            	if(humansTurn) txtMessage.innerHTML = "Player 1's turn!";
+            	else txtMessage.innerHTML = "Player 2's turn!";
+            }
         }
     }
-    function testFutureWins() {
-    	console.log("Testing next-turn wins");
+    function testFutureWins(sym) {
+    	//console.log("Testing next-turn wins");
+    	
     	var openSpaces = [ ];
 		var atLeastOneOpen = false;
+		for(x = 0; x < 3; x++) {
+			for(y = 0; y < 3; y++) {
+				if(btn(x,y).innerHTML == "-") {
+					openSpaces.push([x,y]);
+					atLeastOneOpen = true;
+				}
+			}
+		}
+		if(atLeastOneOpen) {
+			for(i = 0; i < openSpaces.length; i++) {
+				if(sym == "X") {
+					btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "X";
+					
+					if(testWin("X")) {
+						//console.log("X (me) can win in spot ("+openSpaces[i][0]+","+openSpaces[i][1]+")");
+						return true;
+					}
+					
+					btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "-";
+				} else {
+					btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "O";
+					
+					if(testWin("O")) {
+						//console.log("O (me) can win in spot ("+openSpaces[i][0]+","+openSpaces[i][1]+")");
+						return true;
+					}
+					
+					btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "-";
+				}
+			}
+		}
+		
+    	openSpaces = [ ];
+		atLeastOneOpen = false;
 		for(x = 0; x < 3; x++) {
 			for(y = 0; y < 3; y++) {
 				if(btn(x,y).innerHTML == "-") {
@@ -107,15 +151,27 @@
 		}
 		if(atLeastOneOpen) {
 			for(i = 0; i < openSpaces.length; i++) {
-				btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "X";
-				
-				if(testWin("X")) {
-					console.log("X can win in spot ("+openSpaces[i][0]+","+openSpaces[i][1]+")");
+				if(sym == "X") {
 					btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "O";
-					return true;
+					
+					if(testWin("O")) {
+						//console.log("O (them) can win in spot ("+openSpaces[i][0]+","+openSpaces[i][1]+")");
+						btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "X";
+						return true;
+					}
+					
+					btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "-";
+				} else {
+					btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "X";
+					
+					if(testWin("X")) {
+						//console.log("X (them) can win in spot ("+openSpaces[i][0]+","+openSpaces[i][1]+")");
+						btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "O";
+						return true;
+					}
+					
+					btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "-";
 				}
-				
-				btn(openSpaces[i][0], openSpaces[i][1]).innerHTML = "-";
 			}
 		}
 		return false;
@@ -125,17 +181,18 @@
 		
 		if(humansTurn) {
 			btn(x,y).innerHTML = "X";
-			processMessages();
+			processMessages(true);
 			humansTurn = false;
-			if(testWin("X")) { gameFinished = true; return; }
+			processMessages(true);
 			
 			if(!gameFinished) {
-				runAI(x,y);
+				runAI("O",true);
+				processMessages(true);
 			}
 		}
 	}
-	function runAI(x,y) {
-		if(testFutureWins()) { humansTurn = true; return; }
+	function runAI(sym) {
+		if(testFutureWins(sym)) { humansTurn = !humansTurn; return; }
 	
 		var openSpaces = [ ];
 		var atLeastOneOpen = false;
@@ -149,10 +206,52 @@
 		}
 		if(atLeastOneOpen) {
 			var x = Math.floor(Math.random()*openSpaces.length);
-			btn(openSpaces[x][0],openSpaces[x][1]).innerHTML = "O";
-			humansTurn = true;
+			btn(openSpaces[x][0],openSpaces[x][1]).innerHTML = sym;
+			humansTurn = !humansTurn;
 		}
 	}
+	function CPUvCPU(showText) {
+		reset();
+		while(!gameFinished) {
+			runAI("X",false);
+			processMessages(showText);
+			runAI("O");
+			processMessages(showText);
+		}
+		if(testWin("X")) {
+			indefRunLog.push("X won");
+		} else if(testWin("O")) {
+			indefRunLog.push("O won");
+		} else {
+			indefRunLog.push("Tie");
+		}
+	}
+	function runIndef() {
+		if(!runningIndef) {
+			document.getElementById("runIndefBtn").innerHTML = "Stop";
+			runningIndef = true;
+			interval = setInterval(CPUvCPU, 5, false);
+		} else {
+			document.getElementById("runIndefBtn").innerHTML = "Run Indefinitely";
+			runningIndef = false;
+			clearInterval(interval);
+			
+			var totalX = 0;
+			var totalO = 0;
+			var totalTie = 0;
+			for(i = 0; i < indefRunLog.length; i++) {
+				if(indefRunLog[i] == "X won") { totalX++; }
+				else if (indefRunLog[i] == "O won") { totalO++; }
+				else if (indefRunLog[i] == "Tie") { totalTie++; }
+			}
+			
+			console.log("Total X wins: " + totalX + " (" + ((Math.round(((totalX/(totalX+totalO+totalTie))*1000)))/10) + "%)");
+			console.log("Total O wins: " + totalO + " (" + ((Math.round(((totalO/(totalX+totalO+totalTie))*1000)))/10) + "%)");
+			console.log("Total ties  : " + totalTie + " (" + ((Math.round(((totalTie/(totalX+totalO+totalTie))*1000)))/10) + "%)");
+			console.log("Total games : " + (totalX+totalO+totalTie) + " (Checksum:" + indefRunLog.length + ")");
+		}
+	}
+	
 </script>
 
 </body>
